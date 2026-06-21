@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Colinapp.Api/Colinapp.Api.csproj" />
+    <Project Path="src/Colinapp.Application/Colinapp.Application.csproj" />
+    <Project Path="src/Colinapp.Domain/Colinapp.Domain.csproj" />
+    <Project Path="src/Colinapp.Infrastructure/Colinapp.Infrastructure.csproj" />
+    <Project Path="src/Colinapp.Shared/Colinapp.Shared.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,53 @@
+# ---------------------------------------------------------------------------
+# Colinapp —— 根 .gitignore（后端 .NET + 通用），前端见 web/.gitignore
+# ---------------------------------------------------------------------------
+
+# .NET 构建输出
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+artifacts/
+
+# 还原与缓存
+project.lock.json
+project.assets.json
+*.nuget.props
+*.nuget.targets
+.packages/
+*.csproj.nuget.*
+
+# 运行时 / 日志
+logs/
+*.log
+
+# 用户/本地配置（含连接串与密钥，勿提交）
+appsettings.*.local.json
+appsettings.Development.local.json
+*.user
+*.userosscache
+*.suo
+secrets.json
+
+# 测试 / 覆盖率
+[Tt]est[Rr]esult*/
+coverage*.json
+coverage*.xml
+*.coverage
+*.trx
+
+# IDE / 编辑器
+.vs/
+.vscode/
+.idea/
+*.swp
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+desktop.ini

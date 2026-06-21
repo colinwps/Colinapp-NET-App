@@ -1,0 +1,44 @@
+using Colinapp.Application.Auth;
+using Colinapp.Application.Common;
+using Colinapp.Application.Permissions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Colinapp.Application;
+
+/// <summary>
+/// 应用层 DI 注册入口。
+/// </summary>
+public static class DependencyInjection
+{
+    public static IServiceCollection AddApplication(
+        this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+
+        services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
+        services.AddSingleton<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IAuthService, AuthService>();
+
+        // 权限与数据范围
+        services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<IDataScopeService, DataScopeService>();
+
+        // 组织管理业务服务
+        services.AddScoped<Organization.IDepartmentService, Organization.DepartmentService>();
+        services.AddScoped<Organization.IPositionService, Organization.PositionService>();
+        services.AddScoped<Organization.IRoleService, Organization.RoleService>();
+        services.AddScoped<Organization.IMenuService, Organization.MenuService>();
+        services.AddScoped<Organization.IUserService, Organization.UserService>();
+
+        // 平台设置业务服务
+        services.AddScoped<Platform.ILogService, Platform.LogService>();
+        services.AddScoped<Platform.IDictService, Platform.DictService>();
+        services.AddScoped<Platform.IConfigService, Platform.ConfigService>();
+
+        // 业务扩展样例
+        services.AddScoped<Business.INoticeService, Business.NoticeService>();
+
+        return services;
+    }
+}
