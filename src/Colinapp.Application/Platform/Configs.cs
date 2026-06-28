@@ -3,7 +3,6 @@ using Colinapp.Domain.Entities.System;
 using Colinapp.Shared.Exceptions;
 using Colinapp.Shared.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Colinapp.Application.Platform;
 
@@ -43,10 +42,8 @@ public interface IConfigService
     Task DeleteAsync(long id, CancellationToken ct = default);
 }
 
-public class ConfigService(IAppDbContext db, IMemoryCache cache) : IConfigService
+public class ConfigService(IAppDbContext db, ICacheService cache) : IConfigService
 {
-    private static string CacheKey(string key) => $"sys_config:{key}";
-
     public async Task<PagedResult<ConfigDto>> GetPagedAsync(PagedRequest query, CancellationToken ct = default)
     {
         var q = db.SysConfigs.AsQueryable();
@@ -64,18 +61,12 @@ public class ConfigService(IAppDbContext db, IMemoryCache cache) : IConfigServic
     }
 
     public async Task<string?> GetValueAsync(string key, CancellationToken ct = default)
-    {
-        if (cache.TryGetValue(CacheKey(key), out string? cached))
-            return cached;
-
-        var value = await db.SysConfigs
-            .Where(x => x.ConfigKey == key)
-            .Select(x => x.ConfigValue)
-            .FirstOrDefaultAsync(ct);
-
-        cache.Set(CacheKey(key), value, TimeSpan.FromMinutes(30));
-        return value;
-    }
+        => await cache.GetOrSetAsync(CacheKeys.Config(key), async () =>
+            await db.SysConfigs
+                .Where(x => x.ConfigKey == key)
+                .Select(x => x.ConfigValue)
+                .FirstOrDefaultAsync(ct),
+            ct: ct);
 
     public async Task<long> CreateAsync(ConfigSaveDto dto, CancellationToken ct = default)
     {
@@ -85,7 +76,7 @@ public class ConfigService(IAppDbContext db, IMemoryCache cache) : IConfigServic
         var entity = Apply(new SysConfig(), dto);
         db.SysConfigs.Add(entity);
         await db.SaveChangesAsync(ct);
-        cache.Remove(CacheKey(entity.ConfigKey));
+        await cache.RemoveAsync(CacheKeys.Config(entity.ConfigKey), ct);
         return entity.Id;
     }
 
@@ -99,8 +90,8 @@ public class ConfigService(IAppDbContext db, IMemoryCache cache) : IConfigServic
         var oldKey = entity.ConfigKey;
         Apply(entity, dto);
         await db.SaveChangesAsync(ct);
-        cache.Remove(CacheKey(oldKey));
-        cache.Remove(CacheKey(entity.ConfigKey));
+        await cache.RemoveAsync(CacheKeys.Config(oldKey), ct);
+        await cache.RemoveAsync(CacheKeys.Config(entity.ConfigKey), ct);
     }
 
     public async Task DeleteAsync(long id, CancellationToken ct = default)
@@ -112,7 +103,7 @@ public class ConfigService(IAppDbContext db, IMemoryCache cache) : IConfigServic
 
         db.SysConfigs.Remove(entity);
         await db.SaveChangesAsync(ct);
-        cache.Remove(CacheKey(entity.ConfigKey));
+        await cache.RemoveAsync(CacheKeys.Config(entity.ConfigKey), ct);
     }
 
     private static SysConfig Apply(SysConfig e, ConfigSaveDto dto)

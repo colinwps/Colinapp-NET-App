@@ -25,6 +25,9 @@ project.assets.json
 logs/
 *.log
 
+# 上传文件存储目录（运行时产物，勿提交）
+uploads/
+
 # 用户/本地配置（含连接串与密钥，勿提交）
 appsettings.*.local.json
 appsettings.Development.local.json

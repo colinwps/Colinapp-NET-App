@@ -4,6 +4,7 @@ using Colinapp.Domain.Entities.System;
 using Colinapp.Shared.Exceptions;
 using Colinapp.Shared.Models;
 using Microsoft.EntityFrameworkCore;
+using MiniExcelLibs.Attributes;
 
 namespace Colinapp.Application.Organization;
 
@@ -50,6 +51,35 @@ public class UserSaveDto
     public List<long> PostIds { get; set; } = [];
 }
 
+public class UserExportDto
+{
+    [ExcelColumnName("登录账号")] public string UserName { get; set; } = string.Empty;
+    [ExcelColumnName("姓名")] public string NickName { get; set; } = string.Empty;
+    [ExcelColumnName("手机号")] public string? Phone { get; set; }
+    [ExcelColumnName("邮箱")] public string? Email { get; set; }
+    [ExcelColumnName("部门")] public string? DeptName { get; set; }
+    [ExcelColumnName("状态")] public string Status { get; set; } = string.Empty;
+    [ExcelColumnName("最后登录")] public DateTime? LastLoginTime { get; set; }
+    [ExcelColumnName("创建时间")] public DateTime CreatedTime { get; set; }
+}
+
+public class UserImportDto
+{
+    [ExcelColumnName("登录账号")] public string? UserName { get; set; }
+    [ExcelColumnName("姓名")] public string? NickName { get; set; }
+    [ExcelColumnName("初始密码")] public string? Password { get; set; }
+    [ExcelColumnName("手机号")] public string? Phone { get; set; }
+    [ExcelColumnName("邮箱")] public string? Email { get; set; }
+}
+
+public class UserImportResult
+{
+    public int Total { get; set; }
+    public int Success { get; set; }
+    public int Failed { get; set; }
+    public List<string> Errors { get; set; } = [];
+}
+
 // ---------- Service ----------
 
 public interface IUserService
@@ -61,36 +91,25 @@ public interface IUserService
     Task DeleteAsync(long id, CancellationToken ct = default);
     Task ResetPasswordAsync(long id, string newPassword, CancellationToken ct = default);
     Task ChangeStatusAsync(long id, bool enabled, CancellationToken ct = default);
+    Task<byte[]> ExportAsync(UserQuery query, CancellationToken ct = default);
+    byte[] ImportTemplate();
+    Task<UserImportResult> ImportAsync(Stream stream, bool updateExisting, CancellationToken ct = default);
 }
 
 public class UserService(
     IAppDbContext db,
     IPasswordHasher passwordHasher,
     IDataScopeService dataScopeService,
+    IExcelService excel,
+    ICacheService cache,
     ICurrentUser currentUser) : IUserService
 {
+    /// <summary>导入时未填密码的默认初始密码。</summary>
+    private const string DefaultImportPassword = "123456";
+
     public async Task<PagedResult<UserListItemDto>> GetPagedAsync(UserQuery query, CancellationToken ct = default)
     {
-        var q = db.Users.AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(query.Keyword))
-            q = q.Where(x => x.UserName.Contains(query.Keyword) || x.NickName.Contains(query.Keyword));
-        if (query.DeptId is { } deptId)
-            q = q.Where(x => x.DeptId == deptId);
-        if (query.Enabled is { } enabled)
-            q = q.Where(x => x.Enabled == enabled);
-
-        // ---- 数据权限过滤 ----
-        var scope = await dataScopeService.ResolveAsync(ct);
-        if (!scope.All)
-        {
-            var deptIds = scope.DeptIds.ToList();
-            var selfOnly = scope.SelfOnly;
-            var selfId = currentUser.UserId ?? 0;
-            q = q.Where(x =>
-                (x.DeptId != null && deptIds.Contains(x.DeptId.Value))
-                || (selfOnly && x.Id == selfId));
-        }
+        var q = await BuildScopedQueryAsync(query, ct);
 
         var total = await q.CountAsync(ct);
 
@@ -153,6 +172,7 @@ public class UserService(
 
         SyncRelations(user.Id, dto);
         await db.SaveChangesAsync(ct);
+        await cache.RemoveAsync(CacheKeys.UserPermissions(user.Id), ct);
         return user.Id;
     }
 
@@ -179,6 +199,7 @@ public class UserService(
 
         SyncRelations(id, dto);
         await db.SaveChangesAsync(ct);
+        await cache.RemoveAsync(CacheKeys.UserPermissions(id), ct);
     }
 
     public async Task DeleteAsync(long id, CancellationToken ct = default)
@@ -194,6 +215,7 @@ public class UserService(
         db.UserPosts.RemoveRange(posts);
         db.Users.Remove(user);
         await db.SaveChangesAsync(ct);
+        await cache.RemoveAsync(CacheKeys.UserPermissions(id), ct);
     }
 
     public async Task ResetPasswordAsync(long id, string newPassword, CancellationToken ct = default)
@@ -214,6 +236,112 @@ public class UserService(
             throw new BusinessException("超级管理员不能停用");
         user.Enabled = enabled;
         await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<byte[]> ExportAsync(UserQuery query, CancellationToken ct = default)
+    {
+        var q = await BuildScopedQueryAsync(query, ct);
+        var users = await q.OrderByDescending(x => x.Id).ToListAsync(ct);
+        var deptNames = await GetDeptNameMapAsync(users.Select(u => u.DeptId), ct);
+
+        var rows = users.Select(u => new UserExportDto
+        {
+            UserName = u.UserName,
+            NickName = u.NickName,
+            Phone = u.Phone,
+            Email = u.Email,
+            DeptName = u.DeptId is { } d && deptNames.TryGetValue(d, out var n) ? n : null,
+            Status = u.Enabled ? "启用" : "停用",
+            LastLoginTime = u.LastLoginTime,
+            CreatedTime = u.CreatedTime,
+        }).ToList();
+
+        return excel.Export(rows, "用户");
+    }
+
+    public byte[] ImportTemplate() => excel.BuildTemplate<UserImportDto>();
+
+    public async Task<UserImportResult> ImportAsync(Stream stream, bool updateExisting, CancellationToken ct = default)
+    {
+        var rows = excel.Read<UserImportDto>(stream);
+        var result = new UserImportResult { Total = rows.Count };
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var rowNo = 1; // 含表头，数据从第 2 行起
+        foreach (var row in rows)
+        {
+            rowNo++;
+            try
+            {
+                if (string.IsNullOrWhiteSpace(row.UserName))
+                    throw new BusinessException("登录账号不能为空");
+                if (string.IsNullOrWhiteSpace(row.NickName))
+                    throw new BusinessException("姓名不能为空");
+                if (!seen.Add(row.UserName))
+                    throw new BusinessException("文件内账号重复");
+
+                var existing = await db.Users.FirstOrDefaultAsync(x => x.UserName == row.UserName, ct);
+                if (existing is not null)
+                {
+                    if (!updateExisting)
+                        throw new BusinessException("账号已存在");
+                    existing.NickName = row.NickName!;
+                    existing.Phone = row.Phone;
+                    existing.Email = row.Email;
+                }
+                else
+                {
+                    db.Users.Add(new User
+                    {
+                        UserName = row.UserName!,
+                        NickName = row.NickName!,
+                        PasswordHash = passwordHasher.Hash(
+                            string.IsNullOrWhiteSpace(row.Password) ? DefaultImportPassword : row.Password!),
+                        Phone = row.Phone,
+                        Email = row.Email,
+                        Enabled = true,
+                        IsAdmin = false,
+                    });
+                }
+                result.Success++;
+            }
+            catch (Exception ex)
+            {
+                result.Failed++;
+                result.Errors.Add($"第 {rowNo} 行：{ex.Message}");
+            }
+        }
+
+        if (result.Success > 0)
+            await db.SaveChangesAsync(ct);
+        return result;
+    }
+
+    /// <summary>构建带过滤与数据权限范围的用户查询（列表与导出共用）。</summary>
+    private async Task<IQueryable<User>> BuildScopedQueryAsync(UserQuery query, CancellationToken ct)
+    {
+        var q = db.Users.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(query.Keyword))
+            q = q.Where(x => x.UserName.Contains(query.Keyword) || x.NickName.Contains(query.Keyword));
+        if (query.DeptId is { } deptId)
+            q = q.Where(x => x.DeptId == deptId);
+        if (query.Enabled is { } enabled)
+            q = q.Where(x => x.Enabled == enabled);
+
+        // ---- 数据权限过滤 ----
+        var scope = await dataScopeService.ResolveAsync(ct);
+        if (!scope.All)
+        {
+            var deptIds = scope.DeptIds.ToList();
+            var selfOnly = scope.SelfOnly;
+            var selfId = currentUser.UserId ?? 0;
+            q = q.Where(x =>
+                (x.DeptId != null && deptIds.Contains(x.DeptId.Value))
+                || (selfOnly && x.Id == selfId));
+        }
+
+        return q;
     }
 
     private void SyncRelations(long userId, UserSaveDto dto)

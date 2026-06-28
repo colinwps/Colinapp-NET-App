@@ -11,6 +11,7 @@ namespace Colinapp.Application.Common;
 public interface IAppDbContext
 {
     DbSet<User> Users { get; }
+    DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<Department> Departments { get; }
     DbSet<Position> Positions { get; }
     DbSet<Role> Roles { get; }
@@ -26,8 +27,12 @@ public interface IAppDbContext
     DbSet<DictType> DictTypes { get; }
     DbSet<DictData> DictData { get; }
     DbSet<SysConfig> SysConfigs { get; }
+    DbSet<FileRecord> Files { get; }
 
     DbSet<Notice> Notices { get; }
+
+    /// <summary>泛型实体集访问（供代码生成等通用场景，无需为每个实体声明命名 DbSet）。</summary>
+    DbSet<TEntity> Set<TEntity>() where TEntity : class;
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

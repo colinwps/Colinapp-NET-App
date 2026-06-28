@@ -32,3 +32,43 @@ public class UserProfile
 
     public bool IsAdmin { get; set; }
 }
+
+/// <summary>刷新令牌请求</summary>
+public class RefreshTokenRequest
+{
+    public string RefreshToken { get; set; } = string.Empty;
+}
+
+/// <summary>修改密码请求</summary>
+public class ChangePasswordRequest
+{
+    public string OldPassword { get; set; } = string.Empty;
+
+    public string NewPassword { get; set; } = string.Empty;
+}
+
+/// <summary>个人资料（可编辑字段）</summary>
+public class ProfileDto
+{
+    public long Id { get; set; }
+
+    public string UserName { get; set; } = string.Empty;
+
+    public string NickName { get; set; } = string.Empty;
+
+    public string? Phone { get; set; }
+
+    public string? Email { get; set; }
+
+    public bool IsAdmin { get; set; }
+}
+
+/// <summary>更新个人资料请求</summary>
+public class UpdateProfileRequest
+{
+    public string NickName { get; set; } = string.Empty;
+
+    public string? Phone { get; set; }
+
+    public string? Email { get; set; }
+}

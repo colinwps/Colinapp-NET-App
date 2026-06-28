@@ -15,7 +15,7 @@ internal static class MenuSeeder
         // ---- 系统管理 ----
         var system = await EnsureCatalogAsync(db, "系统管理", "/system", "Setting", 1, ct);
         await EnsureModuleAsync(db, system.Id, 1, "用户管理", "user", "system/user/index", "sys:user",
-            ["query", "add", "edit", "remove", "resetPwd"], ct);
+            ["query", "add", "edit", "remove", "resetPwd", "export", "import"], ct);
         await EnsureModuleAsync(db, system.Id, 2, "部门管理", "dept", "system/dept/index", "sys:dept",
             ["query", "add", "edit", "remove"], ct);
         await EnsureModuleAsync(db, system.Id, 3, "职位管理", "position", "system/position/index", "sys:post",
@@ -28,6 +28,8 @@ internal static class MenuSeeder
             ["add", "edit", "remove"], ct);
         await EnsureModuleAsync(db, system.Id, 7, "参数设置", "config", "system/config/index", "sys:config",
             ["add", "edit", "remove"], ct);
+        await EnsureModuleAsync(db, system.Id, 8, "文件管理", "file", "system/file/index", "sys:file",
+            ["upload", "remove"], ct);
 
         // ---- 系统监控 ----
         var monitor = await EnsureCatalogAsync(db, "系统监控", "/monitor", "Monitor", 2, ct);
@@ -36,8 +38,13 @@ internal static class MenuSeeder
         await EnsureModuleAsync(db, monitor.Id, 2, "登录日志", "loginlog", "monitor/loginlog/index", "sys:logininfor",
             ["remove"], ct);
 
+        // ---- 系统工具 ----
+        var tool = await EnsureCatalogAsync(db, "系统工具", "/tool", "Tools", 3, ct);
+        await EnsureModuleAsync(db, tool.Id, 1, "代码生成", "gen", "tool/gen/index", "tool:gen",
+            ["code"], ct);
+
         // ---- 业务示例（扩展样例）----
-        var business = await EnsureCatalogAsync(db, "业务示例", "/business", "Document", 3, ct);
+        var business = await EnsureCatalogAsync(db, "业务示例", "/business", "Document", 4, ct);
         await EnsureModuleAsync(db, business.Id, 1, "公告管理", "notice", "business/notice/index", "biz:notice",
             ["query", "add", "edit", "remove"], ct);
     }
@@ -59,6 +66,10 @@ internal static class MenuSeeder
                 "edit" => "修改",
                 "remove" => "删除",
                 "resetPwd" => "重置密码",
+                "upload" => "上传",
+                "code" => "生成",
+                "export" => "导出",
+                "import" => "导入",
                 _ => action,
             };
             await EnsureButtonAsync(db, page.Id, label, $"{permPrefix}:{action}", ++btnOrder, ct);

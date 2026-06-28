@@ -37,6 +37,51 @@ public class AuthController(
         }
     }
 
+    /// <summary>用刷新令牌换取新的令牌对（令牌轮换）。</summary>
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<ApiResult> Refresh([FromBody] RefreshTokenRequest request, CancellationToken ct)
+    {
+        var result = await authService.RefreshAsync(request.RefreshToken, ct);
+        return ApiResult.Ok(result);
+    }
+
+    /// <summary>登出，撤销刷新令牌。</summary>
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<ApiResult> Logout([FromBody] RefreshTokenRequest request, CancellationToken ct)
+    {
+        await authService.LogoutAsync(request.RefreshToken, ct);
+        return ApiResult.Ok();
+    }
+
+    /// <summary>获取当前用户个人资料（可编辑字段）。</summary>
+    [HttpGet("profile")]
+    [Authorize]
+    public async Task<ApiResult> GetProfile(CancellationToken ct)
+    {
+        var result = await authService.GetProfileAsync(currentUser.UserId ?? 0, ct);
+        return ApiResult.Ok(result);
+    }
+
+    /// <summary>更新当前用户个人资料。</summary>
+    [HttpPut("profile")]
+    [Authorize]
+    public async Task<ApiResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken ct)
+    {
+        await authService.UpdateProfileAsync(currentUser.UserId ?? 0, request, ct);
+        return ApiResult.Ok();
+    }
+
+    /// <summary>修改当前用户密码。</summary>
+    [HttpPut("password")]
+    [Authorize]
+    public async Task<ApiResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken ct)
+    {
+        await authService.ChangePasswordAsync(currentUser.UserId ?? 0, request, ct);
+        return ApiResult.Ok();
+    }
+
     /// <summary>获取当前登录用户信息、角色与权限标识（前端鉴权用）。</summary>
     [HttpGet("me")]
     [Authorize]

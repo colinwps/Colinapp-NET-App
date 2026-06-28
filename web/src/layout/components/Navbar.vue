@@ -19,7 +19,8 @@
       </span>
       <template #dropdown>
         <el-dropdown-menu>
-          <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+          <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+          <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
         </el-dropdown-menu>
       </template>
     </el-dropdown>
@@ -28,7 +29,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { useAppStore } from '@/stores/app'
 import { useUserStore } from '@/stores/user'
@@ -38,13 +39,18 @@ const appStore = useAppStore()
 const userStore = useUserStore()
 const permStore = usePermissionStore()
 const route = useRoute()
+const router = useRouter()
 
 const matched = computed(() => route.matched.filter((m) => m.meta && m.meta.title))
 
 async function onCommand(command: string) {
+  if (command === 'profile') {
+    router.push('/profile')
+    return
+  }
   if (command === 'logout') {
     await ElMessageBox.confirm('确认退出登录？', '提示', { type: 'warning' })
-    userStore.reset()
+    await userStore.logoutAction()
     permStore.reset()
     // 重载以清空已动态添加的路由
     window.location.href = '/login'

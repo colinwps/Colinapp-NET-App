@@ -59,6 +59,34 @@ public class UserController(IUserService service) : ControllerBase
         return ApiResult.Ok();
     }
 
+    private const string XlsxContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+    /// <summary>按当前查询条件与数据范围导出用户为 Excel。</summary>
+    [HttpGet("export")]
+    [HasPermission("sys:user:export")]
+    public async Task<IActionResult> Export([FromQuery] UserQuery query, CancellationToken ct)
+    {
+        var bytes = await service.ExportAsync(query, ct);
+        return File(bytes, XlsxContentType, $"用户_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
+    }
+
+    /// <summary>下载用户导入模板。</summary>
+    [HttpGet("import-template")]
+    [HasPermission("sys:user:import")]
+    public IActionResult ImportTemplate()
+        => File(service.ImportTemplate(), XlsxContentType, "用户导入模板.xlsx");
+
+    /// <summary>导入用户。updateExisting=true 时同名账号将被更新，否则视为冲突跳过。</summary>
+    [HttpPost("import")]
+    [HasPermission("sys:user:import")]
+    public async Task<ApiResult> Import(IFormFile file, [FromForm] bool updateExisting, CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+            throw new Colinapp.Shared.Exceptions.BusinessException("请选择要导入的文件");
+        await using var stream = file.OpenReadStream();
+        return ApiResult.Ok(await service.ImportAsync(stream, updateExisting, ct));
+    }
+
     public record ResetPasswordRequest(string Password);
     public record ChangeStatusRequest(bool Enabled);
 }

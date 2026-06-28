@@ -68,7 +68,7 @@ public interface IDictService
     Task DeleteDataAsync(long id, CancellationToken ct = default);
 }
 
-public class DictService(IAppDbContext db) : IDictService
+public class DictService(IAppDbContext db, ICacheService cache) : IDictService
 {
     public async Task<PagedResult<DictTypeDto>> GetTypesAsync(PagedRequest query, CancellationToken ct = default)
     {
@@ -123,13 +123,14 @@ public class DictService(IAppDbContext db) : IDictService
     }
 
     public async Task<List<DictDataDto>> GetDataByTypeAsync(string type, CancellationToken ct = default)
-    {
-        var entities = await db.DictData
-            .Where(x => x.DictType == type && x.Enabled)
-            .OrderBy(x => x.OrderNum).ThenBy(x => x.Id)
-            .ToListAsync(ct);
-        return entities.Select(ToDataDto).ToList();
-    }
+        => await cache.GetOrSetAsync(CacheKeys.DictData(type), async () =>
+        {
+            var entities = await db.DictData
+                .Where(x => x.DictType == type && x.Enabled)
+                .OrderBy(x => x.OrderNum).ThenBy(x => x.Id)
+                .ToListAsync(ct);
+            return entities.Select(ToDataDto).ToList();
+        }, ct: ct) ?? [];
 
     public async Task<PagedResult<DictDataDto>> GetDataPagedAsync(string type, PagedRequest query, CancellationToken ct = default)
     {
@@ -152,6 +153,7 @@ public class DictService(IAppDbContext db) : IDictService
         var entity = ApplyData(new DictData(), dto);
         db.DictData.Add(entity);
         await db.SaveChangesAsync(ct);
+        await cache.RemoveByPrefixAsync(CacheKeys.DictPrefix, ct);
         return entity.Id;
     }
 
@@ -161,6 +163,7 @@ public class DictService(IAppDbContext db) : IDictService
             ?? throw BusinessException.NotFound("字典数据不存在");
         ApplyData(entity, dto);
         await db.SaveChangesAsync(ct);
+        await cache.RemoveByPrefixAsync(CacheKeys.DictPrefix, ct);
     }
 
     public async Task DeleteDataAsync(long id, CancellationToken ct = default)
@@ -169,6 +172,7 @@ public class DictService(IAppDbContext db) : IDictService
             ?? throw BusinessException.NotFound("字典数据不存在");
         db.DictData.Remove(entity);
         await db.SaveChangesAsync(ct);
+        await cache.RemoveByPrefixAsync(CacheKeys.DictPrefix, ct);
     }
 
     private static DictData ApplyData(DictData e, DictDataSaveDto dto)

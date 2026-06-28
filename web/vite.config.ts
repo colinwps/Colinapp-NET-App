@@ -28,6 +28,11 @@ export default defineConfig({
         target: 'http://localhost:5218',
         changeOrigin: true,
       },
+      // 上传文件的静态访问前缀，同样代理到后端
+      '/uploads': {
+        target: 'http://localhost:5218',
+        changeOrigin: true,
+      },
     },
   },
 })

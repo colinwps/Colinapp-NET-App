@@ -5,9 +5,10 @@ namespace Colinapp.Application.Permissions;
 
 /// <summary>
 /// 权限查询实现。按 用户 → 角色 → 菜单 链路聚合权限标识。
-/// 作用域内缓存结果，避免单次请求重复查询。
+/// 两级缓存：请求内字段缓存 + 跨请求 ICacheService（内存/Redis）。
+/// 失效：用户角色变更（按用户键）、角色/菜单变更（按 perm: 前缀）由各服务触发。
 /// </summary>
-public class PermissionService(IAppDbContext db) : IPermissionService
+public class PermissionService(IAppDbContext db, ICacheService cache) : IPermissionService
 {
     private IReadOnlySet<string>? _cachedPermissions;
     private long? _cachedForUserId;
@@ -17,19 +18,22 @@ public class PermissionService(IAppDbContext db) : IPermissionService
         if (_cachedPermissions is not null && _cachedForUserId == userId)
             return _cachedPermissions;
 
-        var roleIds = await GetUserRoleIdsAsync(userId, ct);
+        var permissions = await cache.GetOrSetAsync(CacheKeys.UserPermissions(userId), async () =>
+        {
+            var roleIds = await GetUserRoleIdsAsync(userId, ct);
 
-        var menuIds = await db.RoleMenus
-            .Where(rm => roleIds.Contains(rm.RoleId))
-            .Select(rm => rm.MenuId)
-            .Distinct()
-            .ToListAsync(ct);
+            var menuIds = await db.RoleMenus
+                .Where(rm => roleIds.Contains(rm.RoleId))
+                .Select(rm => rm.MenuId)
+                .Distinct()
+                .ToListAsync(ct);
 
-        var permissions = await db.Menus
-            .Where(m => menuIds.Contains(m.Id) && m.Enabled && m.Permission != null && m.Permission != "")
-            .Select(m => m.Permission!)
-            .Distinct()
-            .ToListAsync(ct);
+            return await db.Menus
+                .Where(m => menuIds.Contains(m.Id) && m.Enabled && m.Permission != null && m.Permission != "")
+                .Select(m => m.Permission!)
+                .Distinct()
+                .ToListAsync(ct);
+        }, ct: ct) ?? [];
 
         _cachedForUserId = userId;
         _cachedPermissions = permissions.ToHashSet(StringComparer.OrdinalIgnoreCase);

@@ -6,4 +6,7 @@
     <Project Path="src/Colinapp.Infrastructure/Colinapp.Infrastructure.csproj" />
     <Project Path="src/Colinapp.Shared/Colinapp.Shared.csproj" />
   </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/Colinapp.Tests/Colinapp.Tests.csproj" />
+  </Folder>
 </Solution>

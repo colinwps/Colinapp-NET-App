@@ -53,7 +53,7 @@ public interface IRoleService
     Task DeleteAsync(long id, CancellationToken ct = default);
 }
 
-public class RoleService(IAppDbContext db) : IRoleService
+public class RoleService(IAppDbContext db, ICacheService cache) : IRoleService
 {
     public async Task<PagedResult<RoleDto>> GetPagedAsync(PagedRequest query, CancellationToken ct = default)
     {
@@ -119,6 +119,7 @@ public class RoleService(IAppDbContext db) : IRoleService
 
         await SyncRelationsAsync(role.Id, dto, ct);
         await db.SaveChangesAsync(ct);
+        await cache.RemoveByPrefixAsync(CacheKeys.PermissionPrefix, ct);
         return role.Id;
     }
 
@@ -145,6 +146,7 @@ public class RoleService(IAppDbContext db) : IRoleService
 
         await SyncRelationsAsync(id, dto, ct);
         await db.SaveChangesAsync(ct);
+        await cache.RemoveByPrefixAsync(CacheKeys.PermissionPrefix, ct);
     }
 
     public async Task DeleteAsync(long id, CancellationToken ct = default)
@@ -161,6 +163,7 @@ public class RoleService(IAppDbContext db) : IRoleService
         db.RoleDepts.RemoveRange(depts);
         db.Roles.Remove(role);
         await db.SaveChangesAsync(ct);
+        await cache.RemoveByPrefixAsync(CacheKeys.PermissionPrefix, ct);
     }
 
     private Task SyncRelationsAsync(long roleId, RoleSaveDto dto, CancellationToken ct)

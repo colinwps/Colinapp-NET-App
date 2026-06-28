@@ -15,9 +15,12 @@ public static class DependencyInjection
         this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<Storage.FileStorageOptions>(
+            configuration.GetSection(Storage.FileStorageOptions.SectionName));
 
         services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
+        services.AddSingleton<IExcelService, MiniExcelService>();
         services.AddScoped<IAuthService, AuthService>();
 
         // 权限与数据范围
@@ -35,6 +38,12 @@ public static class DependencyInjection
         services.AddScoped<Platform.ILogService, Platform.LogService>();
         services.AddScoped<Platform.IDictService, Platform.DictService>();
         services.AddScoped<Platform.IConfigService, Platform.ConfigService>();
+
+        // 文件存储
+        services.AddScoped<Storage.IFileService, Storage.FileService>();
+
+        // 代码生成器
+        services.AddScoped<CodeGen.ICodeGenService, CodeGen.CodeGenService>();
 
         // 业务扩展样例
         services.AddScoped<Business.INoticeService, Business.NoticeService>();

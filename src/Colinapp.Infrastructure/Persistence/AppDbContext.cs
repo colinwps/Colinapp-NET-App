@@ -28,6 +28,7 @@ public class AppDbContext : DbContext, IAppDbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<Position> Positions => Set<Position>();
     public DbSet<Role> Roles => Set<Role>();
@@ -43,6 +44,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<DictType> DictTypes => Set<DictType>();
     public DbSet<DictData> DictData => Set<DictData>();
     public DbSet<SysConfig> SysConfigs => Set<SysConfig>();
+    public DbSet<FileRecord> Files => Set<FileRecord>();
 
     public DbSet<Notice> Notices => Set<Notice>();
 

@@ -6,10 +6,13 @@ using Colinapp.Api.Middleware;
 using Colinapp.Application;
 using Colinapp.Application.Auth;
 using Colinapp.Application.Common;
+using Colinapp.Application.Storage;
 using Colinapp.Infrastructure;
 using Colinapp.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -93,6 +96,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// ---- 上传文件静态访问（默认 /uploads）----
+var fileStorage = app.Services.GetRequiredService<IOptions<FileStorageOptions>>().Value;
+var uploadRoot = fileStorage.ResolveRootPath();
+Directory.CreateDirectory(uploadRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadRoot),
+    RequestPath = fileStorage.RequestPath,
+});
 
 app.UseCors();
 app.UseAuthentication();
