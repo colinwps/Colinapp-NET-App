@@ -39,5 +39,10 @@ public static class DbInitializer
         // 幂等：每次启动补齐缺失的系统菜单与权限点
         await MenuSeeder.SeedAsync(db);
         logger.LogInformation("系统菜单种子已校验/补齐");
+
+        // 幂等：补齐内置定时任务（默认暂停）
+        var jobRegistry = sp.GetRequiredService<Application.Scheduling.IJobRegistry>();
+        await JobSeeder.SeedAsync(db, jobRegistry);
+        logger.LogInformation("定时任务种子已校验/补齐");
     }
 }

@@ -37,6 +37,8 @@ internal static class MenuSeeder
             ["remove"], ct);
         await EnsureModuleAsync(db, monitor.Id, 2, "登录日志", "loginlog", "monitor/loginlog/index", "sys:logininfor",
             ["remove"], ct);
+        await EnsureModuleAsync(db, monitor.Id, 3, "定时任务", "job", "monitor/job/index", "monitor:job",
+            ["query", "add", "edit", "remove", "changeStatus", "run"], ct);
 
         // ---- 系统工具 ----
         var tool = await EnsureCatalogAsync(db, "系统工具", "/tool", "Tools", 3, ct);
@@ -70,6 +72,8 @@ internal static class MenuSeeder
                 "code" => "生成",
                 "export" => "导出",
                 "import" => "导入",
+                "changeStatus" => "状态",
+                "run" => "执行",
                 _ => action,
             };
             await EnsureButtonAsync(db, page.Id, label, $"{permPrefix}:{action}", ++btnOrder, ct);

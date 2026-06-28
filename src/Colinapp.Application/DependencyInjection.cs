@@ -45,6 +45,9 @@ public static class DependencyInjection
         // 代码生成器
         services.AddScoped<CodeGen.ICodeGenService, CodeGen.CodeGenService>();
 
+        // 定时任务（调度运行时由 Infrastructure 的 Quartz 实现）
+        services.AddScoped<Scheduling.IScheduledJobService, Scheduling.ScheduledJobService>();
+
         // 业务扩展样例
         services.AddScoped<Business.INoticeService, Business.NoticeService>();
 

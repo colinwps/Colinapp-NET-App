@@ -1,11 +1,14 @@
 using Colinapp.Application.Common;
+using Colinapp.Application.Scheduling;
 using Colinapp.Infrastructure.Caching;
 using Colinapp.Infrastructure.Multitenancy;
 using Colinapp.Infrastructure.Persistence;
 using Colinapp.Infrastructure.Persistence.Interceptors;
+using Colinapp.Infrastructure.Scheduling;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Quartz;
 using StackExchange.Redis;
 
 namespace Colinapp.Infrastructure;
@@ -66,6 +69,43 @@ public static class DependencyInjection
             services.AddSingleton<ICacheService, MemoryCacheService>();
         }
 
+        // 定时任务：按 Quartz:Enabled 决定是否启动调度器（默认 true）。
+        AddScheduling(services, configuration);
+
         return services;
+    }
+
+    private static void AddScheduling(IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<Scheduling.SchedulingOptions>(configuration.GetSection(Scheduling.SchedulingOptions.SectionName));
+        var quartzOptions = configuration.GetSection(Scheduling.SchedulingOptions.SectionName).Get<Scheduling.SchedulingOptions>()
+            ?? new Scheduling.SchedulingOptions();
+
+        // 注册表 + 内置任务类型（供 Quartz 作业工厂在执行作用域内解析依赖）。
+        var registry = new JobRegistry();
+        services.AddSingleton(registry);
+        services.AddSingleton<IJobRegistry>(registry);
+        foreach (var jobType in registry.AllJobTypes())
+            services.AddTransient(jobType);
+
+        if (!quartzOptions.Enabled)
+        {
+            // 关闭调度：CRUD 仍可用，仅不真正触发。
+            services.AddSingleton<IJobScheduler, NoOpJobScheduler>();
+            return;
+        }
+
+        services.AddSingleton<JobExecutionListener>();
+        services.AddQuartz(q =>
+        {
+            // 全局监听器（无匹配器=匹配所有任务），从 DI 解析。
+            q.AddJobListener<JobExecutionListener>();
+        });
+        services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
+
+        services.AddSingleton<IJobScheduler, QuartzJobScheduler>();
+
+        // 在 Quartz 托管服务之后注册，确保调度器已就绪再装载数据库中的任务。
+        services.AddHostedService<JobBootstrapper>();
     }
 }

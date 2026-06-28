@@ -28,6 +28,8 @@ public interface IAppDbContext
     DbSet<DictData> DictData { get; }
     DbSet<SysConfig> SysConfigs { get; }
     DbSet<FileRecord> Files { get; }
+    DbSet<ScheduledJob> ScheduledJobs { get; }
+    DbSet<ScheduledJobLog> ScheduledJobLogs { get; }
 
     DbSet<Notice> Notices { get; }
 

@@ -45,6 +45,8 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<DictData> DictData => Set<DictData>();
     public DbSet<SysConfig> SysConfigs => Set<SysConfig>();
     public DbSet<FileRecord> Files => Set<FileRecord>();
+    public DbSet<ScheduledJob> ScheduledJobs => Set<ScheduledJob>();
+    public DbSet<ScheduledJobLog> ScheduledJobLogs => Set<ScheduledJobLog>();
 
     public DbSet<Notice> Notices => Set<Notice>();
 
