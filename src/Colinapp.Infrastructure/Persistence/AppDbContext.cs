@@ -3,6 +3,7 @@ using Colinapp.Application.Common;
 using Colinapp.Domain.Entities;
 using Colinapp.Domain.Entities.Business;
 using Colinapp.Domain.Entities.System;
+using Colinapp.Domain.Entities.Workflow;
 using Colinapp.Infrastructure.Multitenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -49,6 +50,11 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<ScheduledJobLog> ScheduledJobLogs => Set<ScheduledJobLog>();
 
     public DbSet<Notice> Notices => Set<Notice>();
+
+    public DbSet<WorkflowDefinition> WorkflowDefinitions => Set<WorkflowDefinition>();
+    public DbSet<WorkflowInstance> WorkflowInstances => Set<WorkflowInstance>();
+    public DbSet<WorkflowTask> WorkflowTasks => Set<WorkflowTask>();
+    public DbSet<WorkflowCcRecord> WorkflowCcRecords => Set<WorkflowCcRecord>();
 
     /// <summary>查询过滤器引用此成员，EF Core 会将其参数化，每次查询动态求值。</summary>
     public long? CurrentTenantId => _currentUser.TenantId;

@@ -33,6 +33,11 @@ public interface IAppDbContext
 
     DbSet<Notice> Notices { get; }
 
+    DbSet<Domain.Entities.Workflow.WorkflowDefinition> WorkflowDefinitions { get; }
+    DbSet<Domain.Entities.Workflow.WorkflowInstance> WorkflowInstances { get; }
+    DbSet<Domain.Entities.Workflow.WorkflowTask> WorkflowTasks { get; }
+    DbSet<Domain.Entities.Workflow.WorkflowCcRecord> WorkflowCcRecords { get; }
+
     /// <summary>泛型实体集访问（供代码生成等通用场景，无需为每个实体声明命名 DbSet）。</summary>
     DbSet<TEntity> Set<TEntity>() where TEntity : class;
 

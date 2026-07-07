@@ -51,6 +51,9 @@ public static class DependencyInjection
         // 业务扩展样例
         services.AddScoped<Business.INoticeService, Business.NoticeService>();
 
+        // 审批工作流
+        services.AddScoped<Workflow.IWorkflowService, Workflow.WorkflowService>();
+
         return services;
     }
 }

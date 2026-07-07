@@ -21,6 +21,9 @@ public static class DbInitializer
         logger.LogInformation("应用数据库迁移…");
         await db.Database.MigrateAsync();
 
+        // 一次性：旧版线性工作流 JSON → 图格式（幂等，无旧数据时零开销）
+        await WorkflowGraphMigrator.MigrateAsync(db, logger);
+
         if (!await db.Users.IgnoreQueryFilters().AnyAsync())
         {
             var hasher = sp.GetRequiredService<IPasswordHasher>();

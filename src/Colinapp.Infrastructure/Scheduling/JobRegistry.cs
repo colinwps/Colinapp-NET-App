@@ -28,6 +28,11 @@ public sealed class JobRegistry : IJobRegistry
             "sampleHeartbeat", "示例心跳", "0/30 * * * * ?", null,
             "演示用任务：每次执行写一条心跳日志，可作为自定义任务模板"),
             typeof(SampleHeartbeatJob)),
+
+        new(new JobDescriptor(
+            "workflowTimeoutRemind", "审批超时提醒", "0 */10 * * * ?", null,
+            "扫描超过时限未处理的审批任务并提醒（节点配置超时小时数后生效）"),
+            typeof(WorkflowTimeoutRemindJob)),
     ];
 
     public IReadOnlyList<JobDescriptor> GetDescriptors() => _entries.Select(e => e.Descriptor).ToList();

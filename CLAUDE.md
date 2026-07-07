@@ -19,7 +19,7 @@ Colinapp is a general-purpose backend admin framework. Backend: ASP.NET Core (.N
   dotnet ef migrations has-pending-model-changes --project src/Colinapp.Infrastructure --startup-project src/Colinapp.Api
   ```
 - Runtime DB connection + secrets live in `src/Colinapp.Api/appsettings.json` (`ConnectionStrings:Default`, `Jwt:SecretKey`, `MultiTenancy:Enabled`).
-- There is no test project yet.
+- Tests: `dotnet test tests/Colinapp.Application.Tests` — unit tests for the workflow graph engine (`WorkflowGraph.Validate` / `WorkflowGraphEngine`). The workflow module is graph-driven (nodes+edges JSON, schema in `docs/工作流设计器规划.md`); its engine lives in `Application/Workflow/WorkflowGraph*.cs` and is pure logic — extend tests there when touching it.
 
 ### Frontend (run from `web/`)
 - `pnpm install`, then `pnpm dev` (http://localhost:5173, proxies `/api` → `:5218`), `pnpm build` (runs `vue-tsc` type-check then `vite build`), `pnpm type-check`.

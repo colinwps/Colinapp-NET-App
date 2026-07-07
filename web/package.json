@@ -10,9 +10,11 @@
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "@logicflow/core": "^2.2.4",
+    "@logicflow/extension": "^2.3.0",
     "axios": "^1.7.9",
     "element-plus": "^2.9.1",
-    "@element-plus/icons-vue": "^2.3.1",
     "pinia": "^2.3.0",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
@@ -20,6 +22,7 @@
   "devDependencies": {
     "@types/node": "^22.10.2",
     "@vitejs/plugin-vue": "^5.2.1",
+    "playwright-core": "^1.61.1",
     "sass": "^1.83.0",
     "typescript": "~5.7.2",
     "unplugin-auto-import": "^19.0.0",

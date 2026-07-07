@@ -49,6 +49,17 @@ internal static class MenuSeeder
         var business = await EnsureCatalogAsync(db, "业务示例", "/business", "Document", 4, ct);
         await EnsureModuleAsync(db, business.Id, 1, "公告管理", "notice", "business/notice/index", "biz:notice",
             ["query", "add", "edit", "remove"], ct);
+
+        // ---- 审批流程 ----
+        var workflow = await EnsureCatalogAsync(db, "审批流程", "/workflow", "Stamp", 5, ct);
+        await EnsureModuleAsync(db, workflow.Id, 1, "流程定义", "definition", "workflow/definition/index", "wf:def",
+            ["query", "add", "edit", "remove"], ct);
+        await EnsureModuleAsync(db, workflow.Id, 2, "我的申请", "instance", "workflow/instance/index", "wf:instance",
+            ["add", "cancel"], ct);
+        await EnsureModuleAsync(db, workflow.Id, 3, "审批任务", "task", "workflow/task/index", "wf:task",
+            ["approve"], ct);
+        await EnsureModuleAsync(db, workflow.Id, 4, "抄送我的", "cc", "workflow/cc/index", "wf:cc",
+            [], ct);
     }
 
     /// <summary>确保一个页面菜单及其按钮存在（按钮权限为 {prefix}:{action}，页面权限为 {prefix}:list）。</summary>
@@ -74,6 +85,8 @@ internal static class MenuSeeder
                 "import" => "导入",
                 "changeStatus" => "状态",
                 "run" => "执行",
+                "cancel" => "撤销",
+                "approve" => "审批",
                 _ => action,
             };
             await EnsureButtonAsync(db, page.Id, label, $"{permPrefix}:{action}", ++btnOrder, ct);

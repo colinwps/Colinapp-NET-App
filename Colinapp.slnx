@@ -9,4 +9,7 @@
   <Folder Name="/test/">
     <Project Path="test/Colinapp.Tests/Colinapp.Tests.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Colinapp.Application.Tests/Colinapp.Application.Tests.csproj" />
+  </Folder>
 </Solution>

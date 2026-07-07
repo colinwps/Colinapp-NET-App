@@ -4,6 +4,7 @@ using Colinapp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Colinapp.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260707134930_AddWorkflow")]
+    partial class AddWorkflow
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1003,65 +1006,6 @@ namespace Colinapp.Infrastructure.Persistence.Migrations
                     b.ToTable("sys_user_role", (string)null);
                 });
 
-            modelBuilder.Entity("Colinapp.Domain.Entities.Workflow.WorkflowCcRecord", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<long?>("CreatedBy")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedTime")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<long>("InstanceId")
-                        .HasColumnType("bigint");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("NodeId")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
-
-                    b.Property<string>("NodeName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<DateTime?>("ReadTime")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<long?>("TenantId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("UpdatedBy")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("UpdatedTime")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("UserName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("InstanceId");
-
-                    b.HasIndex("UserId", "ReadTime");
-
-                    b.ToTable("wf_cc_record", (string)null);
-                });
-
             modelBuilder.Entity("Colinapp.Domain.Entities.Workflow.WorkflowDefinition", b =>
                 {
                     b.Property<long>("Id")
@@ -1084,14 +1028,6 @@ namespace Colinapp.Infrastructure.Persistence.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<string>("FormFieldsJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("GraphJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
@@ -1099,6 +1035,10 @@ namespace Colinapp.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
+
+                    b.Property<string>("NodesJson")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("Remark")
                         .HasMaxLength(500)
@@ -1134,10 +1074,8 @@ namespace Colinapp.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedTime")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("CurrentNodeId")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
+                    b.Property<int>("CurrentNodeIndex")
+                        .HasColumnType("int");
 
                     b.Property<long>("DefinitionId")
                         .HasColumnType("bigint");
@@ -1154,14 +1092,6 @@ namespace Colinapp.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("FormFieldsJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("GraphJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<long>("InitiatorId")
                         .HasColumnType("bigint");
 
@@ -1172,6 +1102,10 @@ namespace Colinapp.Infrastructure.Persistence.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("NodesJson")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -1228,9 +1162,6 @@ namespace Colinapp.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedTime")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime?>("DueTime")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<DateTime?>("HandleTime")
                         .HasColumnType("datetime(6)");
 
@@ -1240,18 +1171,13 @@ namespace Colinapp.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<string>("NodeId")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
+                    b.Property<int>("NodeIndex")
+                        .HasColumnType("int");
 
                     b.Property<string>("NodeName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
-
-                    b.Property<bool>("Reminded")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
