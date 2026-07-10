@@ -19,7 +19,7 @@ Colinapp is a general-purpose backend admin framework. Backend: ASP.NET Core (.N
   dotnet ef migrations has-pending-model-changes --project src/Colinapp.Infrastructure --startup-project src/Colinapp.Api
   ```
 - Runtime DB connection + secrets live in `src/Colinapp.Api/appsettings.json` (`ConnectionStrings:Default`, `Jwt:SecretKey`, `MultiTenancy:Enabled`).
-- Tests: `dotnet test tests/Colinapp.Application.Tests` — unit tests for the workflow graph engine (`WorkflowGraph.Validate` / `WorkflowGraphEngine`). The workflow module is graph-driven (nodes+edges JSON, schema in `docs/工作流设计器规划.md`); its engine lives in `Application/Workflow/WorkflowGraph*.cs` and is pure logic — extend tests there when touching it.
+- Tests: `dotnet test tests/Colinapp.Application.Tests` — unit tests for the workflow graph engine (`WorkflowGraph.Validate` / `WorkflowGraphEngine`) and the form schema (`Forms/FormSchemaTests`). The workflow module is graph-driven (nodes+edges JSON, schema in `docs/工作流设计器规划.md`); its engine lives in `Application/Workflow/WorkflowGraph*.cs` and is pure logic — extend tests there when touching it.
 
 ### Frontend (run from `web/`)
 - `pnpm install`, then `pnpm dev` (http://localhost:5173, proxies `/api` → `:5218`), `pnpm build` (runs `vue-tsc` type-check then `vite build`), `pnpm type-check`.
@@ -39,7 +39,7 @@ Colinapp is a general-purpose backend admin framework. Backend: ASP.NET Core (.N
 Modular layered, dependency direction `Api → Application → Domain ← Infrastructure`, with `Shared` referenced by all:
 
 - **Colinapp.Domain** — entities + enums, no dependencies. All business entities extend `EntityBase` (Id, CreatedBy/Time, UpdatedBy/Time, IsDeleted, TenantId). Pure join tables (`UserRole`, `RoleMenu`, `UserPost`, `RoleDept`) are plain classes (no `EntityBase`) so they get no soft-delete/tenant filter and are hard-deleted on reassignment.
-- **Colinapp.Application** — business services + DTOs grouped by area (`Auth/`, `Permissions/`, `Organization/`, `Platform/`, `Business/`). Depends on the `IAppDbContext` abstraction and `ICurrentUser`, never on the concrete DbContext. Each area file typically holds DTOs + interface + service together. `DependencyInjection.AddApplication` registers everything.
+- **Colinapp.Application** — business services + DTOs grouped by area (`Auth/`, `Permissions/`, `Organization/`, `Platform/`, `Business/`, `Forms/`, `Workflow/`). The form center (`Forms/`) is a dynamic-form module: `FormField` extends `WorkflowFormField` (superset schema), so a form's `SchemaJson` snapshots directly into a workflow instance's `FormFieldsJson`; a form bound to a workflow (`FormDefinition.WorkflowDefinitionId`) launches an instance on submit via the `IWorkflowService.SubmitAsync(dto, formFieldsJsonOverride, ct)` overload. Depends on the `IAppDbContext` abstraction and `ICurrentUser`, never on the concrete DbContext. Each area file typically holds DTOs + interface + service together. `DependencyInjection.AddApplication` registers everything.
 - **Colinapp.Infrastructure** — `AppDbContext` (implements `IAppDbContext`), EF configurations (auto-loaded via `ApplyConfigurationsFromAssembly`), `AuditSaveChangesInterceptor`, `DbInitializer`, `MenuSeeder`, `DesignTimeDbContextFactory`. `AddInfrastructure` wires the DbContext.
 - **Colinapp.Api** — controllers, middleware, auth plumbing, DI composition (`Program.cs`).
 - **Colinapp.Shared** — `ApiResult`/`ApiResult<T>`, `ResultCode`, `BusinessException`, `PagedRequest`/`PagedResult`.

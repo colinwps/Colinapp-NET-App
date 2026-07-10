@@ -33,6 +33,12 @@ export const constantRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/workflow/designer/index.vue'),
         meta: { title: '流程设计器', hidden: true },
       },
+      {
+        path: '/form/designer/:id',
+        name: 'FormDesigner',
+        component: () => import('@/views/form/designer/index.vue'),
+        meta: { title: '表单设计器', hidden: true },
+      },
     ],
   },
   {

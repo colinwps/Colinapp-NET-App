@@ -60,6 +60,15 @@ internal static class MenuSeeder
             ["approve"], ct);
         await EnsureModuleAsync(db, workflow.Id, 4, "抄送我的", "cc", "workflow/cc/index", "wf:cc",
             [], ct);
+
+        // ---- 表单中心 ----
+        var form = await EnsureCatalogAsync(db, "表单中心", "/form", "Tickets", 6, ct);
+        await EnsureModuleAsync(db, form.Id, 1, "表单定义", "definition", "form/definition/index", "form:def",
+            ["query", "add", "edit", "remove"], ct);
+        await EnsureModuleAsync(db, form.Id, 2, "申请中心", "center", "form/center/index", "form:apply",
+            ["submit"], ct);
+        await EnsureModuleAsync(db, form.Id, 3, "表单数据", "entry", "form/entry/index", "form:entry",
+            [], ct);
     }
 
     /// <summary>确保一个页面菜单及其按钮存在（按钮权限为 {prefix}:{action}，页面权限为 {prefix}:list）。</summary>
@@ -87,6 +96,7 @@ internal static class MenuSeeder
                 "run" => "执行",
                 "cancel" => "撤销",
                 "approve" => "审批",
+                "submit" => "提交",
                 _ => action,
             };
             await EnsureButtonAsync(db, page.Id, label, $"{permPrefix}:{action}", ++btnOrder, ct);

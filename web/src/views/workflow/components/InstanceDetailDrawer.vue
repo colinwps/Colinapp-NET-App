@@ -80,7 +80,10 @@ const formDataPairs = computed(() => {
     const obj = JSON.parse(detail.value.formData)
     if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return null
     const labelOf = (key: string) => detail.value!.formFields.find(f => f.key === key)?.label ?? key
-    return Object.entries(obj).map(([k, v]) => ({ label: labelOf(k), value: String(v ?? '') }))
+    return Object.entries(obj).map(([k, v]) => ({
+      label: labelOf(k),
+      value: Array.isArray(v) ? v.join('、') : String(v ?? ''),
+    }))
   } catch {
     return null
   }

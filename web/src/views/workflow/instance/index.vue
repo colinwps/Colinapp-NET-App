@@ -58,23 +58,14 @@
         </el-form-item>
         <el-form-item label="标题" prop="title"><el-input v-model="form.title" /></el-form-item>
 
-        <!-- 有表单字段定义时按字段渲染动态表单，否则退回自由文本 -->
-        <template v-if="selectedDef && selectedDef.formFields.length">
-          <el-form-item v-for="f in selectedDef.formFields" :key="f.key" :label="f.label" :required="f.required">
-            <el-input-number v-if="f.type === 'number'" v-model="fieldValues[f.key]" style="width: 100%" :controls="false" />
-            <el-date-picker v-else-if="f.type === 'date'" v-model="fieldValues[f.key]" type="date"
-              value-format="YYYY-MM-DD" style="width: 100%" />
-            <el-select v-else-if="f.type === 'select'" v-model="fieldValues[f.key]" clearable style="width: 100%">
-              <el-option v-for="o in f.options" :key="o" :value="o" :label="o" />
-            </el-select>
-            <el-input v-else-if="f.type === 'textarea'" v-model="fieldValues[f.key]" type="textarea" :rows="3" />
-            <el-input v-else v-model="fieldValues[f.key]" />
-          </el-form-item>
-        </template>
-        <el-form-item v-else label="申请内容" prop="formData">
+        <el-form-item v-if="!selectedDef || !selectedDef.formFields.length" label="申请内容" prop="formData">
           <el-input v-model="form.formData" type="textarea" :rows="5" placeholder="填写申请事由、明细等" />
         </el-form-item>
       </el-form>
+
+      <!-- 有表单字段定义时按字段渲染动态表单（组件内含必填校验），否则上面退回自由文本 -->
+      <DynamicForm v-if="selectedDef && selectedDef.formFields.length" ref="dynFormRef"
+        v-model="fieldValues" :fields="selectedDef.formFields" label-width="80px" />
       <template #footer>
         <el-button @click="submitVisible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="onSubmit">提交</el-button>
@@ -87,23 +78,14 @@
           <el-input v-model="resubmitForm.title" />
         </el-form-item>
 
-        <!-- 按实例快照的表单字段渲染动态表单，否则退回自由文本 -->
-        <template v-if="resubmitFields.length">
-          <el-form-item v-for="f in resubmitFields" :key="f.key" :label="f.label" :required="f.required">
-            <el-input-number v-if="f.type === 'number'" v-model="resubmitValues[f.key]" style="width: 100%" :controls="false" />
-            <el-date-picker v-else-if="f.type === 'date'" v-model="resubmitValues[f.key]" type="date"
-              value-format="YYYY-MM-DD" style="width: 100%" />
-            <el-select v-else-if="f.type === 'select'" v-model="resubmitValues[f.key]" clearable style="width: 100%">
-              <el-option v-for="o in f.options" :key="o" :value="o" :label="o" />
-            </el-select>
-            <el-input v-else-if="f.type === 'textarea'" v-model="resubmitValues[f.key]" type="textarea" :rows="3" />
-            <el-input v-else v-model="resubmitValues[f.key]" />
-          </el-form-item>
-        </template>
-        <el-form-item v-else label="申请内容">
+        <el-form-item v-if="!resubmitFields.length" label="申请内容">
           <el-input v-model="resubmitForm.formData" type="textarea" :rows="5" placeholder="填写申请事由、明细等" />
         </el-form-item>
       </el-form>
+
+      <!-- 按实例快照的表单字段渲染动态表单，否则上面退回自由文本 -->
+      <DynamicForm v-if="resubmitFields.length" ref="resubmitFormRef"
+        v-model="resubmitValues" :fields="resubmitFields" label-width="80px" />
       <template #footer>
         <el-button @click="resubmitVisible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="onResubmit">提交</el-button>
@@ -125,6 +107,7 @@ import {
   type WorkflowFormField,
 } from '@/api/workflow'
 import { formatTime } from '@/utils/format'
+import DynamicForm from '@/components/DynamicForm.vue'
 import InstanceDetailDrawer from '../components/InstanceDetailDrawer.vue'
 
 const loading = ref(false)
@@ -159,12 +142,12 @@ const rules: FormRules = {
 }
 const selectedDef = computed(() => defOptions.value.find(d => d.id === form.definitionId))
 
-// 动态表单值：切换流程时按字段定义重置（值类型随控件而变，序列化时原样带出）
+// 动态表单值：切换流程时清空，由 DynamicForm 按字段定义初始化
+const dynFormRef = ref<InstanceType<typeof DynamicForm>>()
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const fieldValues = reactive<Record<string, any>>({})
-watch(selectedDef, (def) => {
-  Object.keys(fieldValues).forEach(k => delete fieldValues[k])
-  def?.formFields.forEach(f => (fieldValues[f.key] = undefined))
+const fieldValues = ref<Record<string, any>>({})
+watch(selectedDef, () => {
+  fieldValues.value = {}
 })
 
 async function openSubmit() {
@@ -177,14 +160,9 @@ async function openSubmit() {
 async function onSubmit() {
   if (!formRef.value) return
   await formRef.value.validate()
-  const fields = selectedDef.value?.formFields ?? []
-  if (fields.length) {
-    const missing = fields.find(f => f.required && (fieldValues[f.key] === undefined || fieldValues[f.key] === ''))
-    if (missing) {
-      ElMessage.warning(`请填写「${missing.label}」`)
-      return
-    }
-    form.formData = JSON.stringify(fieldValues)
+  if (selectedDef.value?.formFields.length) {
+    await dynFormRef.value?.validate()
+    form.formData = JSON.stringify(fieldValues.value)
   }
   saving.value = true
   try {
@@ -202,21 +180,20 @@ const resubmitVisible = ref(false)
 const resubmitId = ref(0)
 const resubmitForm = reactive({ title: '', formData: '' })
 const resubmitFields = ref<WorkflowFormField[]>([])
+const resubmitFormRef = ref<InstanceType<typeof DynamicForm>>()
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const resubmitValues = reactive<Record<string, any>>({})
+const resubmitValues = ref<Record<string, any>>({})
 
 async function openResubmit(row: WorkflowInstance) {
   const detail = (await getInstance(row.id)).data
   resubmitId.value = row.id
   resubmitForm.title = detail.title
   resubmitForm.formData = detail.formData
+  // 先回填原表单数据再换字段列表：DynamicForm 初始化时会保留已有值
+  let parsed: Record<string, unknown> = {}
+  try { parsed = JSON.parse(detail.formData || '{}') } catch { /* 自由文本时留空 */ }
+  resubmitValues.value = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {}
   resubmitFields.value = detail.formFields ?? []
-  Object.keys(resubmitValues).forEach(k => delete resubmitValues[k])
-  if (resubmitFields.value.length) {
-    let parsed: Record<string, unknown> = {}
-    try { parsed = JSON.parse(detail.formData || '{}') } catch { /* 自由文本时留空 */ }
-    resubmitFields.value.forEach(f => (resubmitValues[f.key] = parsed[f.key]))
-  }
   resubmitVisible.value = true
 }
 async function onResubmit() {
@@ -226,13 +203,8 @@ async function onResubmit() {
   }
   let formData = resubmitForm.formData
   if (resubmitFields.value.length) {
-    const missing = resubmitFields.value.find(
-      f => f.required && (resubmitValues[f.key] === undefined || resubmitValues[f.key] === ''))
-    if (missing) {
-      ElMessage.warning(`请填写「${missing.label}」`)
-      return
-    }
-    formData = JSON.stringify(resubmitValues)
+    await resubmitFormRef.value?.validate()
+    formData = JSON.stringify(resubmitValues.value)
   }
   saving.value = true
   try {

@@ -54,6 +54,9 @@ public static class DependencyInjection
         // 审批工作流
         services.AddScoped<Workflow.IWorkflowService, Workflow.WorkflowService>();
 
+        // 表单中心
+        services.AddScoped<Forms.IFormService, Forms.FormService>();
+
         return services;
     }
 }

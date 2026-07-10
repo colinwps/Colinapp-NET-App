@@ -142,6 +142,10 @@ public interface IWorkflowService
 
     // 流程实例
     Task<long> SubmitAsync(WorkflowSubmitDto dto, CancellationToken ct = default);
+
+    /// <summary>发起实例，可用 <paramref name="formFieldsJsonOverride"/> 覆盖实例快照的表单字段
+    /// （表单中心绑定流程的表单提交时传入表单 schema，条件求值与详情展示按表单字段解析）。</summary>
+    Task<long> SubmitAsync(WorkflowSubmitDto dto, string? formFieldsJsonOverride, CancellationToken ct = default);
     Task<PagedResult<WorkflowInstanceDto>> GetMyInstancesAsync(WorkflowInstanceQuery query, CancellationToken ct = default);
     Task<WorkflowInstanceDetailDto> GetInstanceAsync(long id, CancellationToken ct = default);
     Task CancelAsync(long id, CancellationToken ct = default);
@@ -230,6 +234,8 @@ public class WorkflowService(IAppDbContext db, ICurrentUser currentUser) : IWork
         if (await db.WorkflowInstances.AnyAsync(
                 x => x.DefinitionId == id && x.Status == WorkflowInstanceStatus.Running, ct))
             throw new BusinessException("该流程存在审批中的实例，不能删除");
+        if (await db.FormDefinitions.AnyAsync(x => x.WorkflowDefinitionId == id, ct))
+            throw new BusinessException("该流程已被表单绑定，请先在表单中解除绑定");
         db.WorkflowDefinitions.Remove(entity);
         await db.SaveChangesAsync(ct);
     }
@@ -255,7 +261,10 @@ public class WorkflowService(IAppDbContext db, ICurrentUser currentUser) : IWork
 
     // ===== 流程实例 =====
 
-    public async Task<long> SubmitAsync(WorkflowSubmitDto dto, CancellationToken ct = default)
+    public Task<long> SubmitAsync(WorkflowSubmitDto dto, CancellationToken ct = default)
+        => SubmitAsync(dto, null, ct);
+
+    public async Task<long> SubmitAsync(WorkflowSubmitDto dto, string? formFieldsJsonOverride, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(dto.Title)) throw new BusinessException("标题不能为空");
 
@@ -282,7 +291,7 @@ public class WorkflowService(IAppDbContext db, ICurrentUser currentUser) : IWork
             Title = dto.Title.Trim(),
             FormData = dto.FormData,
             GraphJson = def.GraphJson,
-            FormFieldsJson = def.FormFieldsJson,
+            FormFieldsJson = formFieldsJsonOverride ?? def.FormFieldsJson,
             CurrentNodeId = stop.Id,
             InitiatorId = uid,
             InitiatorName = initiatorName,

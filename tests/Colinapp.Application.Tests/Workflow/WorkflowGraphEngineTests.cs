@@ -122,5 +122,45 @@ public class WorkflowGraphEngineTests
         Assert.False(WorkflowGraphEngine.Evaluate(cond, Parse("""{"amount": 100, "days": 1}""")));
     }
 
+    // ===== 数组值（checkbox 多选字段）与布尔值（switch 字段）的行为钉子 =====
+
+    [Fact]
+    public void Evaluate_Contains_ArrayValue_MatchesElement()
+    {
+        // 多选字段提交数组，contains = 「包含某项」
+        var cond = GraphBuilder.Cond("tags", "contains", "发票");
+        Assert.True(WorkflowGraphEngine.Evaluate(cond, Parse("""{"tags": ["发票", "行程单"]}""")));
+        Assert.False(WorkflowGraphEngine.Evaluate(cond, Parse("""{"tags": ["行程单"]}""")));
+        Assert.False(WorkflowGraphEngine.Evaluate(cond, Parse("""{"tags": []}""")));
+    }
+
+    [Theory]
+    [InlineData("eq")]
+    [InlineData("gt")]
+    public void Evaluate_ArrayValue_NonContainsOps_AlwaysFalse(string op)
+    {
+        // 数组值配 eq/gt 等标量操作符恒为 false（前端条件设计器据此只对 checkbox 开放 contains）
+        var cond = GraphBuilder.Cond("tags", op, "发票");
+        Assert.False(WorkflowGraphEngine.Evaluate(cond, Parse("""{"tags": ["发票"]}""")));
+    }
+
+    [Fact]
+    public void Evaluate_In_ArrayActual_AlwaysFalse()
+    {
+        var cond = GraphBuilder.Cond("tags", "in", new[] { "发票" });
+        Assert.False(WorkflowGraphEngine.Evaluate(cond, Parse("""{"tags": ["发票"]}""")));
+    }
+
+    [Fact]
+    public void Evaluate_Eq_BoolToleratesStringForm()
+    {
+        // switch 字段提交布尔值，与规则里的字符串 "true" 宽容相等
+        var cond = GraphBuilder.Cond("urgent", "eq", "true");
+        Assert.True(WorkflowGraphEngine.Evaluate(cond, Parse("""{"urgent": true}""")));
+        Assert.False(WorkflowGraphEngine.Evaluate(cond, Parse("""{"urgent": false}""")));
+        var condBool = GraphBuilder.Cond("urgent", "eq", true);
+        Assert.True(WorkflowGraphEngine.Evaluate(condBool, Parse("""{"urgent": true}""")));
+    }
+
     private static JsonElement? Parse(string json) => JsonDocument.Parse(json).RootElement.Clone();
 }

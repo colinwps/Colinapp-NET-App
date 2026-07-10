@@ -56,6 +56,9 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<WorkflowTask> WorkflowTasks => Set<WorkflowTask>();
     public DbSet<WorkflowCcRecord> WorkflowCcRecords => Set<WorkflowCcRecord>();
 
+    public DbSet<Domain.Entities.Forms.FormDefinition> FormDefinitions => Set<Domain.Entities.Forms.FormDefinition>();
+    public DbSet<Domain.Entities.Forms.FormEntry> FormEntries => Set<Domain.Entities.Forms.FormEntry>();
+
     /// <summary>查询过滤器引用此成员，EF Core 会将其参数化，每次查询动态求值。</summary>
     public long? CurrentTenantId => _currentUser.TenantId;
 
